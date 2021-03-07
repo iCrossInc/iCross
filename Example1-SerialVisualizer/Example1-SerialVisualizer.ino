@@ -65,45 +65,36 @@ float temp = 0.0;
 
 void loop() {
 
-  temp = grideye.getDeviceTemperature();
-  SerialUSB.print("The temperature of the device is:");
-  SerialUSB.println(temp);
+//  temp = grideye.getDeviceTemperature();
+//  SerialUSB.print("The temperature of the device is:");
+//  SerialUSB.println(temp);
 
 //  // loop through all 64 pixels on the device and map each float value to a number
 //  // between 0 and 3 using the HOT and COLD values we set at the top of the sketch
-//  for(unsigned char i = 0; i < 64; i++){
+  for(unsigned char i = 0; i < 64; i++){
 //    SerialUSB.println(i);
 //    SerialUSB.println("The temperature at this pixel is:");
-//    pixelTable[i] = grideye.getPixelTemperature(i);
+    pixelTable[i] = grideye.getPixelTemperature(i);
 //    SerialUSB.println(pixelTable[i]);
-//
-////    pixelTable[i] = map(grideye.getPixelTemperature(i), COLD, HOT, 0, 3);
-//  }
 
-//  for(unsigned char i = 0; i < 64; i++){
-//    SerialUSB.println(i);
-//    SerialUSB.println("The temperature at this pixel is:");
-//    SerialUSB.println(pixelTable[i]);
-//  }
+//    pixelTable[i] = map(grideye.getPixelTemperature(i), COLD, HOT, 0, 3);
+  }
 
-  
-//
-//
+  SerialUSB.println("New temp readings:");
 //  // loop through the table of mapped values and print a character corresponding to each
 //  // pixel's temperature. Add a space between each. Start a new line every 8 in order to 
 //  // create an 8x8 grid
-//  for(unsigned char i = 0; i < 64; i++){
-//    if(pixelTable[i]==0){SerialUSB.println(".");}
-//    else if(pixelTable[i]==1){SerialUSB.println("o");}
-//    else if(pixelTable[i]==2){SerialUSB.println("0");}
-//    else if(pixelTable[i]==3){SerialUSB.println("O");}
-//    else { SerialUSB.println("G");}
-//    SerialUSB.println(" ");
+  for(unsigned char i = 0; i < 64; i++){
+//    if(pixelTable[i]==0){SerialUSB.print(".");}
+//    else if(pixelTable[i]==1){SerialUSB.print("o");}
+//    else if(pixelTable[i]==2){SerialUSB.print("0");}
+//    else if(pixelTable[i]==3){SerialUSB.print("O");}
+//    SerialUSB.print(" ");
 //    if((i+1)%8==0){
 //      SerialUSB.println();
 //    }
-//    SerialUSB.println("Test");
-//  }
+    SerialUSB.println(pixelTable[i]);
+  }
 //
 //  // in between updates, throw a few linefeeds to visually separate the grids. If you're using
 //  // a serial terminal outside the Arduino IDE, you can replace these linefeeds with a clearscreen
@@ -111,7 +102,7 @@ void loop() {
 //  SerialUSB.println();
 //  SerialUSB.println();
 
-  SerialUSB.println("We in the loop I promise....");
+//  SerialUSB.println("We in the loop I promise....");
 
 
   // toss in a delay because we don't need to run all out
