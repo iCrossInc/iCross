@@ -16,16 +16,20 @@ const int PRESSURE_IN_1 = A0; // Input analog pin for pressure input sensor 1/4
 const int PRESSURE_IN_2 = A1; // Input analog pin for pressure input sensor 2/4
 const int PRESSURE_IN_3 = A2; // Input analog pin for pressure input sensor 3/4
 const int PRESSURE_IN_4 = A3; // Input analog pin for pressure input sensor 4/4
-const int LED_OUT = 8; // Output digital pin for whether a pedestrian was detected or not
-const int BUZZER_OUT = 9; // Output digital pin for whether a pedestrian was detected or not
+const int LED_OUT = 8;        // Output digital pin for LED displaying whether a pedestrian was detected
+const int BUZZER_OUT = 9;     // Output digital pin for buzzer that will sound if pedestrian was detected
 
 // TODO - decide on which weights/thresholds work best for this application
 const float PRESSURE_WEIGHT = 1.0;
 const float THERMO_WEIGHT = 1.0 - PRESSURE_WEIGHT;
 const float SENSOR_THRESHOLD = 0.25;
 
+// TODO - refine these values
+const float MAX_PRESSURE_PROB_THRESHOLD = 0.80;
+const float MAX_THERMO_PROB_THRESHOLD = 0.70;
+
 // TODO = define the average environment temperature here
-float ENVIRO_TEMP = 17.5;
+float ENVIRO_TEMP = 16.1;
 
 // TODO - define the average pressure reading at ambient
 float PRESSURE_CONST = 800.0;
@@ -79,7 +83,7 @@ void loop()
   pressure[1] = analogRead(PRESSURE_IN_2);
   pressure[2] = analogRead(PRESSURE_IN_3);
   pressure[3] = analogRead(PRESSURE_IN_4);
-
+//
   SerialUSB.println("Pressure readings");
   SerialUSB.println(pressure[0]);
   SerialUSB.println(pressure[1]);
@@ -92,12 +96,8 @@ void loop()
     thermoPixels[i] = grideye.getPixelTemperature(i);
   }
 
-  
-//  SerialUSB.println("Current temperature is:");
-//  SerialUSB.println(grideye.getDeviceTemperature());
-
   // TODO - make this more robust. This is a good approximation but not perfect
-  ENVIRO_TEMP = grideye.getDeviceTemperature() - 4.0;
+//  ENVIRO_TEMP = grideye.getDeviceTemperature() - 4.0;
 
   // calculate the probabilities
   pressureProb = pressureProbability(pressure);
@@ -109,13 +109,19 @@ void loop()
   SerialUSB.println("Pressure probability:");
   SerialUSB.println(pressureProb);
 
-  // The finalized sensor average wil be the weighted average of the 2 sensor types
-  totalProb = PRESSURE_WEIGHT*pressureProb + THERMO_WEIGHT*thermoProb;
-
-  if (totalProb >= SENSOR_THRESHOLD) {
+  if (pressureProb >= MAX_PRESSURE_PROB_THRESHOLD) {
+    pedestrianDetected = HIGH;
+  } else if (thermoProb >= MAX_THERMO_PROB_THRESHOLD) {
     pedestrianDetected = HIGH;
   } else {
-    pedestrianDetected = LOW;
+      // The finalized sensor average wil be the weighted average of the 2 sensor types
+      totalProb = PRESSURE_WEIGHT*pressureProb + THERMO_WEIGHT*thermoProb;
+    
+      if (totalProb >= SENSOR_THRESHOLD) {
+        pedestrianDetected = HIGH;
+      } else {
+        pedestrianDetected = LOW;
+      }
   }
 
   // Output to console whether it detected a pedestrian or not
@@ -124,13 +130,12 @@ void loop()
 
   // write the value to the output pin
   if (pedestrianDetected) {
-    tone(BUZZER_OUT, 250);
-    // digitalWrite(BUZZER_OUT, HIGH);
+    digitalWrite(BUZZER_OUT, HIGH);
     digitalWrite(LED_OUT, HIGH);
   } else {
+    digitalWrite(BUZZER_OUT, LOW);
     digitalWrite(LED_OUT, LOW);
   }
-
 
   // add some new lines for console cosmetics
   SerialUSB.println();
@@ -148,14 +153,17 @@ float thermoProbability(float pixels[]) {
 
   bubbleSort(pixels, 64);
 
-  const int NUM_PIXELS_HOTTEST = 4;
+  const int NUM_PIXELS_HOTTEST = 16;
 
   // take the average of the top n% of the hottest pixels
   for (int i = 0; i < NUM_PIXELS_HOTTEST; i++) {
     totalTempHottestPixels += pixels[i];
   }
-
+  
   avgTempHottestPixels = totalTempHottestPixels / NUM_PIXELS_HOTTEST;
+
+  SerialUSB.println("Thermopile avg hottest temp");
+  SerialUSB.println(avgTempHottestPixels);
 
   // now, we can apply a simple probability density function on the average temperature of the hottest
   // pixels in comparison with the environment temperature to see if a pedestrian is indeed
@@ -166,7 +174,14 @@ float thermoProbability(float pixels[]) {
 }
 
 float probability(float ratio) {
-  return 1 - std::exp(-12*ratio);
+  float prob = 1 - std::exp(-12*ratio);
+
+  // make sure that probability is greater than 0
+  if (prob < 0) {
+    prob = 0;
+  }
+
+  return prob;
 }
 
 
@@ -217,7 +232,7 @@ void bubbleSort(float arr[], int n)
      swapped = false; 
      for (j = 0; j < n-i-1; j++) 
      { 
-        if (arr[j] > arr[j+1]) 
+        if (arr[j] < arr[j+1]) 
         { 
            swap(&arr[j], &arr[j+1]); 
            swapped = true; 
