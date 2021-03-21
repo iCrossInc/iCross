@@ -29,13 +29,21 @@ const float MAX_PRESSURE_PROB_THRESHOLD = 0.80;
 const float MAX_THERMO_PROB_THRESHOLD = 0.70;
 
 // TODO = define the average environment temperature here
-float ENVIRO_TEMP = 16.1;
+float ENVIRO_TEMP = 15.1;
 
 // TODO - define the average pressure reading at ambient
 float PRESSURE_CONST = 800.0;
 
 // Boolean value representing the state of whether a pedestrian has been detected or not
 bool pedestrianDetected = LOW;
+
+// Beep lengths
+const int LONG_BEEP = 1000;
+const int SHORT_BEEP = 500;
+
+// counter for the attention beeps
+int lastShortBeep = 0;
+int TIME_BETWEEN_SHORT_BEEPS = 500;
 
 // State variables for all the input sensor values
 float pressure[4];
@@ -78,12 +86,37 @@ void setup()
 // Continous loop that will run detecting pedestrians 24/7
 void loop()
 {
+  pedestrianDetected = detectPedestrian();
+
+  // buzz to alert nearby people of where to stand
+  if ( millis() - lastShortBeep > TIME_BETWEEN_SHORT_BEEPS) {
+    lastShortBeep = millis();
+    buzzAlertNearby(); 
+  }
+
+  // pedestrian was detected for the first time
+  if (pedestrianDetected == HIGH) {
+    buzzPedestrianDetected();
+    // error checking
+    delay(3000);
+    pedestrianDetected = detectPedestrian();
+    if (pedestrianDetected == HIGH) {
+      const int DELAY_BEFORE_CROSS = 6000;
+      delay(DELAY_BEFORE_CROSS);
+      buzzWalkCycleInProgress();
+    } else {
+      digitalWrite(LED_OUT, LOW);
+    }
+  }
+}
+
+bool detectPedestrian() {
   // Read in the data from the pressure sensors
   pressure[0] = analogRead(PRESSURE_IN_1);
   pressure[1] = analogRead(PRESSURE_IN_2);
   pressure[2] = analogRead(PRESSURE_IN_3);
   pressure[3] = analogRead(PRESSURE_IN_4);
-//
+
   SerialUSB.println("Pressure readings");
   SerialUSB.println(pressure[0]);
   SerialUSB.println(pressure[1]);
@@ -92,7 +125,7 @@ void loop()
 
   // Extract the data from the thermopile sensors
   // by looping through all 64 pixels on the device
-  for(unsigned char i = 0; i < 64; i++) {
+  for (unsigned char i = 0; i < 64; i++) {
     thermoPixels[i] = grideye.getPixelTemperature(i);
   }
 
@@ -128,20 +161,10 @@ void loop()
   SerialUSB.println("Pedestrian Detected?");
   SerialUSB.println(pedestrianDetected);
 
-  // write the value to the output pin
-  if (pedestrianDetected) {
-    digitalWrite(BUZZER_OUT, HIGH);
-    digitalWrite(LED_OUT, HIGH);
-  } else {
-    digitalWrite(BUZZER_OUT, LOW);
-    digitalWrite(LED_OUT, LOW);
-  }
-
   // add some new lines for console cosmetics
   SerialUSB.println();
-  
-  // run a small delay to preserve processor power
-  delay(200);
+
+  return pedestrianDetected;  
 }
 
 // Function which outputs the probability that a pedestrian
@@ -199,21 +222,6 @@ float pressureProbability(float pressure[]) {
     }
   }
 
-//  for (int i = 0; i < 5; i++) {
-//    if (pressure[i] < pressure1st) {
-//      if (pressure[i] > pressure2nd) {
-//        pressure2nd = pressure[i];
-//      }
-//    }
-//  }
-
-  // Take the average of the 2 highest pressure sensor values
-//  float pressureAvg = (pressure1st + pressure2nd) / 2.0;
-
-  // Scale this to match the 0-1024 range of the pressure sensors
-//  pressureAvg /= 300;
-//  pressure1st /= 800;
-
   float pressureDelta = (pressure1st - PRESSURE_CONST) / PRESSURE_CONST;
 
 
@@ -247,7 +255,33 @@ void bubbleSort(float arr[], int n)
 
  void swap(float *xp, float *yp) 
 { 
-    int temp = *xp; 
-    *xp = *yp; 
-    *yp = temp; 
-} 
+  int temp = *xp; 
+  *xp = *yp; 
+  *yp = temp; 
+}
+
+void buzzPedestrianDetected() {
+  digitalWrite(BUZZER_OUT, HIGH);
+  digitalWrite(LED_OUT, HIGH);
+  delay(LONG_BEEP);
+  digitalWrite(BUZZER_OUT, LOW);
+}
+
+void buzzAlertNearby() {
+  digitalWrite(BUZZER_OUT, HIGH);
+  delay(SHORT_BEEP);
+  digitalWrite(BUZZER_OUT, LOW);
+}
+
+void buzzWalkCycleInProgress() {
+  const int NUM_BEEPS = 15;
+  for (int i = 0; i < NUM_BEEPS; i++) {
+    digitalWrite(BUZZER_OUT, HIGH);
+    digitalWrite(LED_OUT, HIGH);
+    delay(LONG_BEEP);
+    digitalWrite(BUZZER_OUT, LOW);
+    digitalWrite(LED_OUT, LOW);
+    delay(SHORT_BEEP);
+  }
+  digitalWrite(LED_OUT, LOW);
+}
