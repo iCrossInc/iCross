@@ -38,12 +38,12 @@ float PRESSURE_CONST = 800.0;
 bool pedestrianDetected = LOW;
 
 // Beep lengths
-const int LONG_BEEP = 1000;
+const int LONG_BEEP = 2000;
 const int SHORT_BEEP = 500;
 
 // counter for the attention beeps
 int lastShortBeep = 0;
-int TIME_BETWEEN_SHORT_BEEPS = 500;
+int TIME_BETWEEN_SHORT_BEEPS = 2500;
 
 // State variables for all the input sensor values
 float pressure[4];
@@ -125,9 +125,9 @@ bool detectPedestrian() {
 
   // Extract the data from the thermopile sensors
   // by looping through all 64 pixels on the device
-  for (unsigned char i = 0; i < 64; i++) {
-    thermoPixels[i] = grideye.getPixelTemperature(i);
-  }
+//  for (unsigned char i = 0; i < 64; i++) {
+//    thermoPixels[i] = grideye.getPixelTemperature(i);
+//  }
 
   // TODO - make this more robust. This is a good approximation but not perfect
 //  ENVIRO_TEMP = grideye.getDeviceTemperature() - 4.0;
@@ -136,8 +136,8 @@ bool detectPedestrian() {
   pressureProb = pressureProbability(pressure);
   thermoProb = thermoProbability(thermoPixels);
 
-  SerialUSB.println("Temperature probability:");
-  SerialUSB.println(thermoProb);
+//  SerialUSB.println("Temperature probability:");
+//  SerialUSB.println(thermoProb);
 
   SerialUSB.println("Pressure probability:");
   SerialUSB.println(pressureProb);
@@ -269,12 +269,12 @@ void buzzPedestrianDetected() {
 
 void buzzAlertNearby() {
   digitalWrite(BUZZER_OUT, HIGH);
-  delay(SHORT_BEEP);
+  delay(LONG_BEEP);
   digitalWrite(BUZZER_OUT, LOW);
 }
 
 void buzzWalkCycleInProgress() {
-  const int NUM_BEEPS = 15;
+  const int NUM_BEEPS = 10;
   for (int i = 0; i < NUM_BEEPS; i++) {
     digitalWrite(BUZZER_OUT, HIGH);
     digitalWrite(LED_OUT, HIGH);
